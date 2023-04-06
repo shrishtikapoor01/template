@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: ex288-php-mysql
+  namespace: indy
+objects:
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: php
+      namespace: indy
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: mysql
+      namespace: indy
+  - apiVersion: v1
+    kind: BuildConfig
+    metadata:
+      name: php-app-build
+      namespace: indy
+    spec:
+      output:
+        to:
+          kind: ImageStreamTag
+          name: php-app:latest
+      source:
+        git:
+          uri: http://git.domain10.example.com/git/php-app.git
+      strategy:
+        sourceStrategy:
+          from:
+            kind: ImageStreamTag
+            name: php:latest
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      labels:
+        app: php-app
+      name: php-app
+      namespace: indy
+    spec:
+      replicas: 1
+      selector:
+        app: php-app
+      template:
+        metadata:
+          labels:
+            app: php-app
+        spec:
+          containers:
+            - env:
+                - name: HELLO_AUDIENCE
+                  value: Engineers
+              image: php-app:latest
+              name: php-app
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+              resources: {}
+              volumeMounts: []
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          volumes: []
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: php-app
+      name: php-app
+      namespace: indy
+    spec:
+      ports:
+        - name: 8080-tcp
+          port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        app: php-app
+      sessionAffinity: None
+      type: ClusterIP
+parameters:
+  - description: Domain name for the application
+    from: ""
+    generate: expression
+    name: APPLICATION_DOMAIN
+    required: true
+    value: ""
+  - description: Greeting message for the application
+    from: ""
+    name: HELLO_Message
+    required: false
+    value: ""
+  - description: Audience for the greeting message
+    from: ""
+    name: HELLO_AUDIENCE
+    required: false
+    value: Engineers
